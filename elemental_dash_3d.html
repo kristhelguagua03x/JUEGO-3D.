@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elemental Dash 3D - Tabla Periódica</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js (3D Graphics) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0512;
+            font-family: 'Rajdhani', sans-serif;
+            color: #ffffff;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glassmorphism Purple Style */
+        .purple-glass {
+            background: rgba(28, 11, 46, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            box-shadow: 0 8px 32px 0 rgba(112, 26, 182, 0.37);
+        }
+
+        .purple-glass-interactive {
+            background: rgba(38, 14, 64, 0.88);
+            border: 1px solid rgba(192, 132, 252, 0.45);
+            transition: all 0.2s ease;
+        }
+
+        .purple-glass-interactive:active {
+            transform: scale(0.95);
+            background: rgba(126, 34, 206, 0.9);
+        }
+
+        /* Square Button UI */
+        .btn-sq {
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #9333ea 0%, #6b21a8 100%);
+            box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+        }
+
+        .btn-purple:hover {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            box-shadow: 0 0 22px rgba(168, 85, 247, 0.7);
+        }
+
+        /* Canvas element styling */
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Neon Glow Text */
+        .neon-text-purple {
+            text-shadow: 0 0 10px #c084fc, 0 0 20px #9333ea, 0 0 30px #6b21a8;
+        }
+
+        .neon-border {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+        }
+
+        /* Scrollbar custom styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 5, 29, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9333ea;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-overlay" class="flex flex-col justify-between p-3 md:p-6">
+
+        <!-- Top Header Navigation Bar -->
+        <header class="interactive flex justify-between items-center w-full max-w-5xl mx-auto">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-900/80 border border-purple-400 flex items-center justify-center text-purple-300 font-orbitron font-black text-lg shadow-lg">
+                    <i class="fa-solid fa-atom animate-spin" style="animation-duration: 8s;"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron font-black text-lg md:text-xl text-white tracking-wider neon-text-purple">ELEMENTAL DASH 3D</h1>
+                    <span class="text-[10px] md:text-xs text-purple-300 font-semibold tracking-widest block -mt-1">TABLA PERIÓDICA</span>
+                </div>
+            </div>
+
+            <!-- In-game Stats HUD & Pause / Exit Buttons -->
+            <div id="hud-stats" class="hidden flex items-center gap-2 md:gap-3 purple-glass px-3 py-1.5 md:px-4 md:py-2 rounded-2xl">
+                <div class="text-right">
+                    <span class="text-[9px] text-purple-400 font-bold block uppercase tracking-wider">ETAPA</span>
+                    <span id="hud-stage" class="font-orbitron text-xs md:text-base text-purple-100 font-black">1 / 20</span>
+                </div>
+                <div class="h-6 w-px bg-purple-800/80"></div>
+                <div class="text-right">
+                    <span class="text-[9px] text-fuchsia-400 font-bold block uppercase tracking-wider">VELOCIDAD</span>
+                    <span id="hud-speed-val" class="font-orbitron text-xs md:text-base text-fuchsia-300 font-black">200 KM/H</span>
+                </div>
+                <div class="h-6 w-px bg-purple-800/80"></div>
+                <!-- Pause Button -->
+                <button id="btn-pause-game" class="px-2.5 py-1.5 rounded-xl bg-amber-600/80 hover:bg-amber-500 text-white font-orbitron text-xs font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-pause"></i> <span class="hidden md:inline">PAUSA</span>
+                </button>
+                <button id="btn-exit-game" class="px-2.5 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-500 text-white font-orbitron text-xs font-bold transition flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden md:inline">SALIR</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="interactive my-auto flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full text-center">
+            <div class="purple-glass p-6 md:p-8 rounded-3xl w-full border border-purple-500/40 shadow-2xl space-y-4">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-purple-600/30 border border-purple-400 flex items-center justify-center text-purple-200 font-orbitron font-black text-2xl shadow-inner mb-2">
+                    <i class="fa-solid fa-atom text-purple-300 animate-pulse"></i>
+                </div>
+                <h2 class="font-orbitron text-2xl font-black text-white tracking-wide">AVENTURA QUÍMICA</h2>
+                <p class="text-xs text-purple-300/80">Esquiva conos 3D a alta velocidad y pon a prueba tus conocimientos de la tabla periódica.</p>
+
+                <div class="space-y-3 pt-2">
+                    <button id="btn-start" class="w-full py-4 rounded-2xl btn-purple text-white font-orbitron font-bold text-base tracking-wider flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-play"></i> EMPEZAR AVENTURA
+                    </button>
+
+                    <!-- Highlighted Character Selection Button -->
+                    <button id="btn-characters" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600/80 to-purple-600/80 hover:from-cyan-500 hover:to-purple-500 border border-cyan-400/50 text-white font-orbitron font-bold text-sm transition flex items-center justify-center gap-3 shadow-lg">
+                        <i class="fa-solid fa-user-astronaut text-cyan-300"></i> SELECCIONAR PERSONAJE
+                    </button>
+
+                    <button id="btn-settings" class="w-full py-3.5 rounded-2xl bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/30 text-purple-200 font-orbitron font-bold text-sm transition flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-sliders"></i> AJUSTES
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selector Menu -->
+        <div id="level-select-menu" class="hidden interactive my-auto flex flex-col items-center justify-center p-4 md:p-6 max-w-4xl mx-auto w-full">
+            <div class="purple-glass p-5 md:p-8 rounded-3xl w-full border border-purple-500/30 shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="font-orbitron text-xl md:text-2xl font-black text-purple-100">SELECCIONAR NIVEL</h2>
+                        <p class="text-purple-300 text-xs">Supera cada nivel en secuencia para desbloquear las siguientes etapas</p>
+                    </div>
+                    <button class="btn-back-menu p-3 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-300 border border-purple-500/40">
+                        <i class="fa-solid fa-arrow-left text-base"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <!-- Level 1 (Easy) -->
+                    <div id="card-lvl-1" class="purple-glass p-4 rounded-2xl border-2 border-emerald-500/60 hover:border-emerald-400 transition cursor-pointer relative overflow-hidden group">
+                        <div class="absolute top-3 right-3 bg-emerald-500/20 text-emerald-300 text-[10px] px-2.5 py-1 rounded-full font-bold border border-emerald-500/40">
+                            FÁCIL
+                        </div>
+                        <i class="fa-solid fa-vial text-3xl text-emerald-400 mb-2 block"></i>
+                        <h3 class="font-orbitron font-bold text-base md:text-lg text-white mb-1">Nivel 1: Bloque S</h3>
+                        <p class="text-xs text-purple-300 mb-3">Hidrógeno y Alcalinos. Preguntas iniciales y velocidad moderada.</p>
+                        <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                            <span>20 Etapas</span> • <span>Desbloqueado</span>
+                        </div>
+                    </div>
+
+                    <!-- Level 2 (Medium) -->
+                    <div id="card-lvl-2" class="purple-glass p-4 rounded-2xl border-2 border-purple-900/50 opacity-80 transition relative overflow-hidden">
+                        <div id="lock-icon-2" class="absolute inset-0 bg-purple-950/85 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                            <i class="fa-solid fa-lock text-3xl text-purple-400 mb-2"></i>
+                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center px-2">Completa Nivel Fácil</span>
+                        </div>
+                        <i class="fa-solid fa-bolt text-3xl text-amber-400 mb-2 block"></i>
+                        <h3 class="font-orbitron font-bold text-base md:text-lg text-white mb-1">Nivel 2: Bloque D</h3>
+                        <p class="text-xs text-purple-300 mb-3">Metales de Transición. Conos más frecuentes.</p>
+                        <div class="text-xs font-semibold text-purple-400">20 Etapas</div>
+                    </div>
+
+                    <!-- Level 3 (Hard) -->
+                    <div id="card-lvl-3" class="purple-glass p-4 rounded-2xl border-2 border-purple-900/50 opacity-80 transition relative overflow-hidden">
+                        <div id="lock-icon-3" class="absolute inset-0 bg-purple-950/85 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+                            <i class="fa-solid fa-lock text-3xl text-purple-400 mb-2"></i>
+                            <span class="text-[10px] font-bold text-purple-300 uppercase tracking-widest text-center px-2">Completa Nivel Medio</span>
+                        </div>
+                        <i class="fa-solid fa-atom text-3xl text-rose-400 mb-2 block"></i>
+                        <h3 class="font-orbitron font-bold text-base md:text-lg text-white mb-1">Nivel 3: Bloque F</h3>
+                        <p class="text-xs text-purple-300 mb-3">Lantánidos y Actínidos. Máximo desafío químico.</p>
+                        <div class="text-xs font-semibold text-purple-400">20 Etapas</div>
+                    </div>
+                </div>
+
+                <!-- Stage Grid Selector -->
+                <div id="stage-selector-container" class="pt-4 border-t border-purple-500/20">
+                    <h4 class="font-orbitron text-xs font-bold text-purple-300 mb-3 uppercase tracking-wider">SELECCIONAR ETAPA (1 - 20)</h4>
+                    <div id="stage-grid" class="grid grid-cols-5 md:grid-cols-10 gap-2 max-h-40 overflow-y-auto pr-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div id="settings-menu" class="hidden interactive my-auto flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
+            <div class="purple-glass p-8 rounded-3xl w-full border border-purple-500/30 shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-orbitron text-xl font-black text-purple-100"><i class="fa-solid fa-sliders text-purple-400 mr-2"></i>AJUSTES</h2>
+                    <button class="btn-back-menu p-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-300 border border-purple-500/40">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-2">
+                            <span class="text-purple-300"><i class="fa-solid fa-sun mr-2 text-amber-400"></i>Brillo de Pantalla</span>
+                            <span id="brightness-val" class="text-purple-200">100%</span>
+                        </div>
+                        <input id="slider-brightness" type="range" min="50" max="150" value="100" class="w-full h-2 bg-purple-950 rounded-lg appearance-none cursor-pointer border border-purple-500/30">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-2">
+                            <span class="text-purple-300"><i class="fa-solid fa-volume-high mr-2 text-purple-400"></i>Volumen General</span>
+                            <span id="volume-val" class="text-purple-200">80%</span>
+                        </div>
+                        <input id="slider-volume" type="range" min="0" max="100" value="80" class="w-full h-2 bg-purple-950 rounded-lg appearance-none cursor-pointer border border-purple-500/30">
+                    </div>
+
+                    <div class="flex justify-between items-center bg-purple-950/40 p-3.5 rounded-xl border border-purple-500/20">
+                        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-drum mr-2 text-fuchsia-400"></i>Efectos de Sonido (SFX)</span>
+                        <input id="toggle-sfx" type="checkbox" checked class="w-5 h-5 accent-purple-500 rounded cursor-pointer">
+                    </div>
+
+                    <div class="flex justify-between items-center bg-purple-950/40 p-3.5 rounded-xl border border-purple-500/20">
+                        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-music mr-2 text-cyan-400"></i>Música Sintetizada</span>
+                        <input id="toggle-music" type="checkbox" checked class="w-5 h-5 accent-purple-500 rounded cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Character Selector Menu -->
+        <div id="character-menu" class="hidden interactive my-auto flex flex-col items-center justify-center p-6 max-w-lg mx-auto w-full">
+            <div class="purple-glass p-6 md:p-8 rounded-3xl w-full border border-purple-500/30 shadow-2xl text-center">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-orbitron text-xl font-black text-purple-100"><i class="fa-solid fa-user-astronaut text-purple-400 mr-2"></i>PERSONAJES 3D</h2>
+                    <button class="btn-back-menu p-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-300 border border-purple-500/40">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="char-card active border-2 border-cyan-400 bg-purple-900/50 p-4 rounded-2xl cursor-pointer hover:bg-purple-800/40 transition" data-char="electron">
+                        <div class="w-14 h-14 mx-auto mb-2 rounded-2xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 text-xl font-bold">
+                            e⁻
+                        </div>
+                        <h4 class="font-orbitron text-xs font-bold text-white">Electrón</h4>
+                        <span class="text-[10px] text-cyan-300">Azul Neón</span>
+                    </div>
+
+                    <div class="char-card border-2 border-purple-900/50 bg-purple-950/40 p-4 rounded-2xl cursor-pointer hover:bg-purple-800/40 transition" data-char="proton">
+                        <div class="w-14 h-14 mx-auto mb-2 rounded-2xl bg-rose-500/20 border border-rose-400 flex items-center justify-center text-rose-300 text-xl font-bold">
+                            p⁺
+                        </div>
+                        <h4 class="font-orbitron text-xs font-bold text-white">Protón</h4>
+                        <span class="text-[10px] text-rose-300">Rojo Fuego</span>
+                    </div>
+
+                    <div class="char-card border-2 border-purple-900/50 bg-purple-950/40 p-4 rounded-2xl cursor-pointer hover:bg-purple-800/40 transition" data-char="neutron">
+                        <div class="w-14 h-14 mx-auto mb-2 rounded-2xl bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 text-xl font-bold">
+                            n⁰
+                        </div>
+                        <h4 class="font-orbitron text-xs font-bold text-white">Neutrón</h4>
+                        <span class="text-[10px] text-amber-300">Dorado Ámbar</span>
+                    </div>
+                </div>
+
+                <p class="text-xs text-purple-300/80">Selecciona el avatar subatómico que vas a controlar en la pista 3D.</p>
+            </div>
+        </div>
+
+        <!-- Question Quiz Modal -->
+        <div id="question-modal" class="hidden interactive fixed inset-0 z-50 flex items-center justify-center p-4 bg-purple-950/90 backdrop-blur-md">
+            <div class="purple-glass p-6 md:p-8 rounded-3xl max-w-lg w-full border border-purple-400/60 shadow-2xl text-center space-y-4 animate-bounce-in">
+                <div class="inline-block px-3 py-1 rounded-full bg-purple-800/60 border border-purple-400 text-purple-200 text-xs font-orbitron font-bold">
+                    <i class="fa-solid fa-atom mr-1 text-cyan-400"></i> DESAFÍO QUÍMICO
+                </div>
+
+                <h3 id="quiz-question" class="font-orbitron text-base md:text-xl font-bold text-white leading-snug">
+                    ¿Cuál es el símbolo químico del Hidrógeno?
+                </h3>
+
+                <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2">
+                    <!-- Options populated dynamically -->
+                </div>
+
+                <div id="quiz-feedback" class="text-xs font-bold h-4 font-orbitron"></div>
+            </div>
+        </div>
+
+        <!-- Stage Cleared / Next Stage Modal -->
+        <div id="result-modal" class="hidden interactive fixed inset-0 z-50 flex items-center justify-center p-4 bg-purple-950/90 backdrop-blur-md">
+            <div class="purple-glass p-8 rounded-3xl max-w-sm w-full border border-emerald-400/60 shadow-2xl text-center space-y-4">
+                <div class="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 text-3xl">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h3 class="font-orbitron text-2xl font-black text-white">¡ETAPA SUPERADA!</h3>
+                <p class="text-purple-300 text-xs">Has completado con éxito esta etapa de la carrera química.</p>
+                <div class="space-y-2 pt-2">
+                    <button id="btn-next-stage" class="w-full py-3.5 rounded-2xl btn-purple text-white font-orbitron font-bold text-sm tracking-wider flex items-center justify-center gap-2">
+                        SIGUIENTE ETAPA <i class="fa-solid fa-forward"></i>
+                    </button>
+                    <button id="btn-retry-stage" class="w-full py-3 rounded-2xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 font-orbitron font-bold text-xs border border-purple-500/30">
+                        REPETIR ETAPA
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- In-game Controls Positioned strictly at the very bottom -->
+        <div id="game-controls-hud" class="hidden interactive mt-auto p-3 w-full max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3 bg-purple-950/90 backdrop-blur-md rounded-t-3xl border-t border-purple-500/40">
+            
+            <!-- Square Directional Control Pad (Left, Right, Down, Jump) -->
+            <div class="flex items-center gap-2 order-2 md:order-1">
+                <div class="flex gap-2">
+                    <button id="btn-left" class="btn-sq purple-glass border border-purple-400/40 text-lg text-purple-200 active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <button id="btn-right" class="btn-sq purple-glass border border-purple-400/40 text-lg text-purple-200 active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="btn-down" class="btn-sq purple-glass border border-purple-400/40 text-lg text-purple-200 active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button id="btn-jump" class="btn-sq btn-purple border border-purple-300 text-lg text-white active:scale-95 transition">
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Speed Regulation Bar at bottom center -->
+            <div class="purple-glass px-4 py-2 rounded-2xl border border-purple-500/30 flex items-center gap-3 order-1 md:order-2 w-full md:w-auto justify-center">
+                <span class="text-[10px] font-orbitron font-bold text-purple-300 uppercase tracking-wider">VELOCIDAD:</span>
+                <div class="flex gap-1.5">
+                    <button class="btn-speed px-2.5 py-1.5 rounded-lg bg-purple-900/80 border border-purple-500/40 text-purple-200 text-xs font-orbitron font-bold hover:bg-purple-700 transition" data-speed="50">50</button>
+                    <button class="btn-speed px-2.5 py-1.5 rounded-lg bg-purple-900/80 border border-purple-500/40 text-purple-200 text-xs font-orbitron font-bold hover:bg-purple-700 transition" data-speed="100">100</button>
+                    <button class="btn-speed px-2.5 py-1.5 rounded-lg bg-purple-600 border border-purple-300 text-white text-xs font-orbitron font-bold transition" data-speed="200">200 TURBO</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="p-1.5 text-center text-[10px] text-purple-400/60 font-semibold">
+            <span>Elemental Dash 3D • Aprendizaje de Química Interactivo</span>
+        </footer>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pause-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-purple-950/85 backdrop-blur-md">
+        <div class="purple-glass p-8 rounded-3xl max-w-sm w-full border border-amber-400/50 shadow-2xl text-center space-y-4">
+            <div class="inline-block p-4 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 mb-1">
+                <i class="fa-solid fa-pause text-3xl"></i>
+            </div>
+            <h2 class="font-orbitron text-2xl font-black text-white">JUEGO EN PAUSA</h2>
+            <p class="text-purple-300 text-xs">Tómate un respiro antes de continuar la carrera química.</p>
+            
+            <div class="space-y-2.5 pt-2">
+                <button id="btn-resume-game" class="w-full py-3.5 rounded-2xl btn-purple text-white font-orbitron font-bold text-sm tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> CONTINUAR
+                </button>
+                <button class="btn-back-menu w-full py-3 rounded-2xl bg-purple-950/80 hover:bg-purple-900 text-purple-300 font-orbitron font-bold text-xs border border-purple-500/20">
+                    <i class="fa-solid fa-house mr-1"></i> MENÚ PRINCIPAL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sound synth engine and question banks
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.volume = 0.8;
+                this.sfxEnabled = true;
+                this.musicEnabled = true;
+                this.musicInterval = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playJump() {
+                if (!this.ctx || !this.sfxEnabled) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(380, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.25 * this.volume, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+            }
+
+            playCorrect() {
+                if (!this.ctx || !this.sfxEnabled) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gain.gain.setValueAtTime(0.3 * this.volume, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(now + 0.35);
+            }
+
+            playHit() {
+                if (!this.ctx || !this.sfxEnabled) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.35 * this.volume, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            startSynthMusic() {
+                if (!this.musicEnabled || this.musicInterval) return;
+                this.init();
+                const notes = [110, 130.81, 146.83, 164.81];
+                let step = 0;
+
+                this.musicInterval = setInterval(() => {
+                    if (!this.musicEnabled || !this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[step % notes.length], this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05 * this.volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.35);
+                    step++;
+                }, 350);
+            }
+
+            stopSynthMusic() {
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        const chemistryQuestions = [
+            { q: "¿Cuál es el símbolo químico del Hidrógeno?", options: ["H", "He", "Ho", "Hy"], correct: 0, level: 1 },
+            { q: "¿Qué elemento tiene el número atómico 1?", options: ["Helio", "Oxígeno", "Hidrógeno", "Litio"], correct: 2, level: 1 },
+            { q: "El símbolo del Sodio en la tabla periódica es...", options: ["So", "Na", "Sd", "Ni"], correct: 1, level: 1 },
+            { q: "¿Cuál de estos elementos es un Gas Noble?", options: ["Litio", "Potasio", "Helio", "Bario"], correct: 2, level: 1 },
+            { q: "El símbolo químico 'K' corresponde al...", options: ["Kriptón", "Potasio", "Calcio", "Cobalto"], correct: 1, level: 1 },
+            { q: "¿Cuál es el símbolo químico del Hierro?", options: ["Hi", "Ir", "Fe", "F"], correct: 2, level: 2 },
+            { q: "El símbolo químico 'Au' pertenece al...", options: ["Plata", "Oro", "Cobre", "Aluminio"], correct: 1, level: 2 },
+            { q: "El Cobre está representado por el símbolo...", options: ["Co", "Cr", "Cu", "Cp"], correct: 2, level: 2 },
+            { q: "El símbolo 'Hg' corresponde al elemento...", options: ["Mercurio", "Hidrógeno", "Hoplio", "Manganeso"], correct: 0, level: 2 },
+            { q: "¿Cuál es el símbolo del Uranio?", options: ["Ur", "U", "Un", "Uo"], correct: 1, level: 3 },
+            { q: "¿El Plutonio se representa como...?", options: ["Pl", "Pt", "Pu", "Po"], correct: 2, level: 3 },
+            { q: "Los Lantánidos pertenecen al bloque...", options: ["Bloque S", "Bloque P", "Bloque D", "Bloque F"], correct: 3, level: 3 }
+        ];
+
+        const gameState = {
+            unlockedLevel: 1,
+            currentLevel: 1,
+            currentStage: 1,
+            selectedChar: 'electron',
+            speedKmH: 200,
+            speedUnits: 0.9,
+            inGame: false,
+            isPaused: false,
+            isJumping: false,
+            isCrouching: false,
+            jumpVelocity: 0,
+            playerLane: 0,
+            stageProgress: 0,
+            activeObstacles: [],
+            pendingObstacle: null
+        };
+
+        let scene, camera, renderer;
+        let playerGroup, leftLeg, rightLeg, leftArm, rightArm, coreNucleus;
+        let trackGroup;
+
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0b0512, 0.012);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3.5, 6);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xd8b4fe, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            trackGroup = new THREE.Group();
+            scene.add(trackGroup);
+
+            buildRunnerTrack();
+            create3DHumanoidCharacter();
+
+            window.addEventListener('resize', onWindowResize);
+            animateLoop();
+        }
+
+        function buildRunnerTrack() {
+            trackGroup.clear();
+
+            // Main Track Floor
+            const trackGeo = new THREE.BoxGeometry(8, 0.4, 300);
+            const trackMat = new THREE.MeshStandardMaterial({
+                color: 0x160a26,
+                roughness: 0.5,
+                metalness: 0.7
+            });
+            const track = new THREE.Mesh(trackGeo, trackMat);
+            track.position.set(0, -0.2, -130);
+            track.receiveShadow = true;
+            trackGroup.add(track);
+
+            // Glowing Purple Lane Divider Lines
+            [-2.5, 0, 2.5].forEach(x => {
+                const lineGeo = new THREE.BoxGeometry(0.12, 0.05, 300);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.position.set(x, 0.01, -130);
+                trackGroup.add(line);
+            });
+
+            // Decorative Side Pillars
+            for (let z = 0; z > -300; z -= 12) {
+                [-5, 5].forEach(x => {
+                    const pillarGeo = new THREE.CylinderGeometry(0.25, 0.4, 6, 8);
+                    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, roughness: 0.4 });
+                    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                    pillar.position.set(x, 3, z);
+                    trackGroup.add(pillar);
+
+                    const crystalGeo = new THREE.OctahedronGeometry(0.4);
+                    const crystalMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+                    const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+                    crystal.position.set(x, 6.2, z);
+                    trackGroup.add(crystal);
+                });
+            }
+        }
+
+        function create3DHumanoidCharacter() {
+            if (playerGroup) scene.remove(playerGroup);
+
+            playerGroup = new THREE.Group();
+
+            let mainColor = 0x06b6d4; // Electron default
+            if (gameState.selectedChar === 'proton') mainColor = 0xf43f5e;
+            if (gameState.selectedChar === 'neutron') mainColor = 0xf59e0b;
+
+            const charMat = new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.3, metalness: 0.5 });
+            const glowMat = new THREE.MeshBasicMaterial({ color: mainColor });
+
+            // Torso
+            const torsoGeo = new THREE.CylinderGeometry(0.35, 0.25, 0.9, 12);
+            const torso = new THREE.Mesh(torsoGeo, charMat);
+            torso.position.y = 1.15;
+            torso.castShadow = true;
+            playerGroup.add(torso);
+
+            // Core Nucleus
+            const coreGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            coreNucleus = new THREE.Mesh(coreGeo, glowMat);
+            coreNucleus.position.set(0, 1.15, 0);
+            playerGroup.add(coreNucleus);
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const head = new THREE.Mesh(headGeo, charMat);
+            head.position.y = 1.85;
+            head.castShadow = true;
+            playerGroup.add(head);
+
+            // Orbiting Ring
+            const ringGeo = new THREE.TorusGeometry(0.65, 0.04, 8, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xe9d5ff });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.y = 1.15;
+            ring.rotation.x = Math.PI / 3;
+            playerGroup.add(ring);
+
+            // Limbs
+            const legGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.7, 8);
+            leftLeg = new THREE.Mesh(legGeo, charMat);
+            leftLeg.position.set(-0.18, 0.35, 0);
+            playerGroup.add(leftLeg);
+
+            rightLeg = new THREE.Mesh(legGeo, charMat);
+            rightLeg.position.set(0.18, 0.35, 0);
+            playerGroup.add(rightLeg);
+
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.6, 8);
+            leftArm = new THREE.Mesh(armGeo, charMat);
+            leftArm.position.set(-0.45, 1.2, 0);
+            playerGroup.add(leftArm);
+
+            rightArm = new THREE.Mesh(armGeo, charMat);
+            rightArm.position.set(0.45, 1.2, 0);
+            playerGroup.add(rightArm);
+
+            playerGroup.position.set(0, 0, 0);
+            scene.add(playerGroup);
+        }
+
+        function generateStageContent() {
+            gameState.activeObstacles.forEach(o => scene.remove(o.mesh));
+            gameState.activeObstacles = [];
+
+            // Balanced obstacle count with wide spacing for high speed reaction time
+            const totalObstacles = 10 + Math.floor(gameState.currentStage * 0.7);
+            const lanes = [-2.5, 0, 2.5];
+            const coneColors = [0xef4444, 0x10b981, 0x3b82f6]; // Red, Green, Blue Cones
+
+            for (let i = 1; i <= totalObstacles; i++) {
+                const zPos = - (i * 40 + Math.random() * 10);
+                const lane = lanes[Math.floor(Math.random() * lanes.length)];
+
+                const obsGroup = new THREE.Group();
+
+                // 3D Traffic / Chemistry Cones
+                const coneColor = coneColors[Math.floor(Math.random() * coneColors.length)];
+                const coneGeo = new THREE.ConeGeometry(0.55, 1.2, 12);
+                const coneMat = new THREE.MeshStandardMaterial({
+                    color: coneColor,
+                    roughness: 0.3,
+                    metalness: 0.4
+                });
+                const cone = new THREE.Mesh(coneGeo, coneMat);
+                cone.position.set(0, 0.6, 0);
+                cone.castShadow = true;
+                obsGroup.add(cone);
+
+                // Cone Base Ring
+                const baseGeo = new THREE.BoxGeometry(0.9, 0.1, 0.9);
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b });
+                const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+                baseMesh.position.set(0, 0.05, 0);
+                obsGroup.add(baseMesh);
+
+                // Floating Atom Ring above cone
+                const ringGeo = new THREE.TorusGeometry(0.35, 0.04, 8, 16);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xf0abfc });
+                const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                ringMesh.position.set(0, 1.5, 0);
+                ringMesh.rotation.x = Math.PI / 2;
+                obsGroup.add(ringMesh);
+
+                obsGroup.position.set(lane, 0, zPos);
+                scene.add(obsGroup);
+
+                gameState.activeObstacles.push({
+                    mesh: obsGroup,
+                    lane: lane,
+                    z: zPos,
+                    passed: false
+                });
+            }
+        }
+
+        function triggerChemistryQuiz(obstacle) {
+            gameState.inGame = false;
+            gameState.pendingObstacle = obstacle;
+
+            // Pick question based on level
+            const filteredQuestions = chemistryQuestions.filter(q => q.level === gameState.currentLevel || q.level === 1);
+            const selectedQuiz = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
+
+            document.getElementById('quiz-question').innerText = selectedQuiz.q;
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            selectedQuiz.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-3 px-4 rounded-xl purple-glass border border-purple-400/40 hover:border-fuchsia-400 text-purple-100 font-orbitron font-bold text-sm text-left transition flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span> <i class="fa-solid fa-flask text-xs text-purple-400"></i>`;
+
+                btn.onclick = () => {
+                    if (idx === selectedQuiz.correct) {
+                        // Correct Answer - Pass Obstacle
+                        audio.playCorrect();
+                        document.getElementById('quiz-feedback').innerHTML = "<span class='text-emerald-400'>¡CORRECTO! BARRERA QUÍMICA DESINTEGRADA</span>";
+                        setTimeout(() => {
+                            document.getElementById('question-modal').classList.add('hidden');
+                            if (gameState.pendingObstacle) {
+                                scene.remove(gameState.pendingObstacle.mesh);
+                                gameState.activeObstacles = gameState.activeObstacles.filter(o => o !== gameState.pendingObstacle);
+                            }
+                            gameState.inGame = true;
+                        }, 800);
+                    } else {
+                        // Incorrect Answer - Reset Stage to Beginning
+                        audio.playHit();
+                        document.getElementById('quiz-feedback').innerHTML = "<span class='text-rose-400'>¡INCORRECTO! REPETIRÁS LA ETAPA DESDE EL INICIO</span>";
+                        setTimeout(() => {
+                            document.getElementById('question-modal').classList.add('hidden');
+                            startStage(gameState.currentLevel, gameState.currentStage);
+                        }, 1200);
+                    }
+                };
+
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').innerText = '';
+            document.getElementById('question-modal').classList.remove('hidden');
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+
+            if (gameState.inGame && !gameState.isPaused) {
+                // Forward Runner Motion
+                gameState.stageProgress += gameState.speedUnits;
+                
+                // Animate Character Running Limbs at high tempo proportional to speed
+                const runTempo = 0.016 * (gameState.speedKmH / 40);
+                const runTime = Date.now() * runTempo;
+                if (leftLeg && rightLeg) {
+                    leftLeg.rotation.x = Math.sin(runTime) * 0.95;
+                    rightLeg.rotation.x = -Math.sin(runTime) * 0.95;
+                    leftArm.rotation.x = -Math.sin(runTime) * 0.95;
+                    rightArm.rotation.x = Math.sin(runTime) * 0.95;
+                }
+
+                // Ultra responsive Horizontal Lane Interpolation
+                const targetX = gameState.playerLane * 2.5;
+                playerGroup.position.x += (targetX - playerGroup.position.x) * 0.5;
+
+                // Fast Jump Physics
+                if (gameState.isJumping) {
+                    playerGroup.position.y += gameState.jumpVelocity;
+                    gameState.jumpVelocity -= 0.055; // Snappy fast gravity for high-speed jumping
+                    if (playerGroup.position.y <= 0) {
+                        playerGroup.position.y = 0;
+                        gameState.isJumping = false;
+                    }
+                }
+
+                // Move active obstacles towards player
+                gameState.activeObstacles.forEach(obs => {
+                    obs.mesh.position.z += gameState.speedUnits;
+
+                    // Collision Detection with Player
+                    const distZ = Math.abs(obs.mesh.position.z - playerGroup.position.z);
+                    const distX = Math.abs(obs.mesh.position.x - playerGroup.position.x);
+
+                    if (distZ < 1.2 && distX < 0.9 && playerGroup.position.y < 0.8 && !obs.passed) {
+                        obs.passed = true;
+                        triggerChemistryQuiz(obs);
+                    }
+                });
+
+                // Check Stage Completion
+                if (gameState.stageProgress >= 450) {
+                    completeStage();
+                }
+            }
+
+            // Camera follow player position smoothly
+            if (playerGroup) {
+                camera.position.x = playerGroup.position.x * 0.4;
+                camera.position.y = playerGroup.position.y + 3.2;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function completeStage() {
+            gameState.inGame = false;
+
+            // Unlock next level sequentially if completing stage 20
+            if (gameState.currentStage === 20) {
+                if (gameState.currentLevel === 1) {
+                    gameState.unlockedLevel = Math.max(gameState.unlockedLevel, 2);
+                    document.getElementById('lock-icon-2').classList.add('hidden');
+                    document.getElementById('card-lvl-2').classList.remove('opacity-80');
+                    document.getElementById('card-lvl-2').classList.add('border-amber-500/60');
+                } else if (gameState.currentLevel === 2) {
+                    gameState.unlockedLevel = Math.max(gameState.unlockedLevel, 3);
+                    document.getElementById('lock-icon-3').classList.add('hidden');
+                    document.getElementById('card-lvl-3').classList.remove('opacity-80');
+                    document.getElementById('card-lvl-3').classList.add('border-rose-500/60');
+                }
+            }
+
+            document.getElementById('result-modal').classList.remove('hidden');
+        }
+
+        function setSpeed(kmh) {
+            gameState.speedKmH = kmh;
+            gameState.speedUnits = kmh * 0.0045; // High speed scaling multiplier
+            document.getElementById('hud-speed-val').innerText = `${kmh} KM/H`;
+
+            document.querySelectorAll('.btn-speed').forEach(b => {
+                if (parseInt(b.getAttribute('data-speed')) === kmh) {
+                    b.classList.remove('bg-purple-900/80');
+                    b.classList.add('bg-purple-600', 'border-purple-300');
+                } else {
+                    b.classList.remove('bg-purple-600', 'border-purple-300');
+                    b.classList.add('bg-purple-900/80');
+                }
+            });
+        }
+
+        function moveLane(dir) {
+            if (!gameState.inGame || gameState.isPaused) return;
+            // Shift lane left (-1) or right (+1) bounded within [-1, 0, 1]
+            gameState.playerLane = Math.max(-1, Math.min(1, gameState.playerLane + dir));
+        }
+
+        function jump() {
+            if (!gameState.inGame || gameState.isPaused || gameState.isJumping) return;
+            gameState.isJumping = true;
+            gameState.jumpVelocity = 0.58;
+            audio.playJump();
+        }
+
+        function crouch() {
+            if (!gameState.inGame || gameState.isPaused || gameState.isJumping) return;
+            playerGroup.scale.set(1, 0.5, 1);
+            setTimeout(() => {
+                playerGroup.scale.set(1, 1, 1);
+            }, 500);
+        }
+
+        function showScreen(screenId) {
+            ['main-menu', 'level-select-menu', 'settings-menu', 'character-menu'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function renderStageGrid() {
+            const grid = document.getElementById('stage-grid');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= 20; i++) {
+                const btn = document.createElement('button');
+                btn.className = "py-2.5 rounded-xl border font-orbitron font-bold text-xs transition flex items-center justify-center " +
+                    (i <= gameState.currentStage 
+                        ? "bg-purple-600/80 border-purple-400 text-white hover:bg-purple-500" 
+                        : "bg-purple-950/40 border-purple-900/50 text-purple-500 cursor-not-allowed");
+                btn.innerText = i;
+                btn.onclick = () => {
+                    startStage(gameState.currentLevel, i);
+                };
+                grid.appendChild(btn);
+            }
+        }
+
+        function selectLevel(lvl) {
+            gameState.currentLevel = lvl;
+            renderStageGrid();
+        }
+
+        function startStage(level, stage) {
+            audio.init();
+            audio.startSynthMusic();
+
+            gameState.currentLevel = level;
+            gameState.currentStage = stage;
+            gameState.stageProgress = 0;
+            gameState.playerLane = 0;
+            gameState.inGame = true;
+            gameState.isPaused = false;
+
+            playerGroup.position.set(0, 0, 0);
+
+            document.getElementById('hud-stage').innerText = `${stage} / 20`;
+            document.getElementById('hud-stats').classList.remove('hidden');
+            document.getElementById('game-controls-hud').classList.remove('hidden');
+
+            ['main-menu', 'level-select-menu', 'settings-menu', 'character-menu', 'result-modal', 'question-modal', 'pause-modal'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            generateStageContent();
+        }
+
+        function setupUIListeners() {
+            document.getElementById('btn-start').onclick = () => {
+                selectLevel(1);
+                showScreen('level-select-menu');
+            };
+            document.getElementById('btn-settings').onclick = () => showScreen('settings-menu');
+            document.getElementById('btn-characters').onclick = () => showScreen('character-menu');
+
+            document.getElementById('btn-pause-game').onclick = () => togglePause();
+            document.getElementById('btn-resume-game').onclick = () => togglePause();
+
+            document.getElementById('btn-exit-game').onclick = () => {
+                gameState.inGame = false;
+                gameState.isPaused = false;
+                document.getElementById('game-controls-hud').classList.add('hidden');
+                document.getElementById('hud-stats').classList.add('hidden');
+                document.getElementById('pause-modal').classList.add('hidden');
+                showScreen('main-menu');
+            };
+
+            document.querySelectorAll('.btn-back-menu').forEach(btn => {
+                btn.onclick = () => {
+                    document.getElementById('result-modal').classList.add('hidden');
+                    document.getElementById('pause-modal').classList.add('hidden');
+                    document.getElementById('game-controls-hud').classList.add('hidden');
+                    document.getElementById('hud-stats').classList.add('hidden');
+                    gameState.inGame = false;
+                    gameState.isPaused = false;
+                    showScreen('main-menu');
+                };
+            });
+
+            document.getElementById('card-lvl-1').onclick = () => selectLevel(1);
+            document.getElementById('card-lvl-2').onclick = () => {
+                if (gameState.unlockedLevel >= 2) selectLevel(2);
+            };
+            document.getElementById('card-lvl-3').onclick = () => {
+                if (gameState.unlockedLevel >= 3) selectLevel(3);
+            };
+
+            document.querySelectorAll('.btn-speed').forEach(btn => {
+                btn.onclick = (e) => setSpeed(parseInt(e.target.getAttribute('data-speed')));
+            });
+
+            document.querySelectorAll('.char-card').forEach(card => {
+                card.onclick = () => {
+                    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('border-cyan-400', 'bg-purple-900/50'));
+                    card.classList.add('border-cyan-400', 'bg-purple-900/50');
+
+                    gameState.selectedChar = card.getAttribute('data-char');
+                    create3DHumanoidCharacter();
+                };
+            });
+
+            // Square Touch Controls
+            document.getElementById('btn-left').onclick = () => moveLane(-1);
+            document.getElementById('btn-right').onclick = () => moveLane(1);
+            document.getElementById('btn-jump').onclick = () => jump();
+            document.getElementById('btn-down').onclick = () => crouch();
+
+            // Keyboard Controls
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+                if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLane(-1);
+                if (e.code === 'KeyD' || e.code === 'ArrowRight') moveLane(1);
+                if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump();
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') crouch();
+            });
+
+            // Settings Controls
+            document.getElementById('slider-brightness').oninput = (e) => {
+                document.getElementById('brightness-val').innerText = `${e.target.value}%`;
+                document.body.style.filter = `brightness(${e.target.value}%)`;
+            };
+
+            document.getElementById('slider-volume').oninput = (e) => {
+                document.getElementById('volume-val').innerText = `${e.target.value}%`;
+                audio.volume = e.target.value / 100;
+            };
+
+            document.getElementById('toggle-sfx').onchange = (e) => audio.sfxEnabled = e.target.checked;
+            document.getElementById('toggle-music').onchange = (e) => {
+                audio.musicEnabled = e.target.checked;
+                if (e.target.checked) audio.startSynthMusic();
+                else audio.stopSynthMusic();
+            };
+
+            document.getElementById('btn-next-stage').onclick = () => {
+                if (gameState.currentStage < 20) gameState.currentStage++;
+                startStage(gameState.currentLevel, gameState.currentStage);
+            };
+
+            document.getElementById('btn-retry-stage').onclick = () => {
+                startStage(gameState.currentLevel, gameState.currentStage);
+            };
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = () => {
+            init3DWorld();
+            setupUIListeners();
+            setSpeed(200);
+        };
+    </script>
+</body>
+</html>
